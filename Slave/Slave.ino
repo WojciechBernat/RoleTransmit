@@ -25,7 +25,7 @@ boolean TxState = false;
 
 boolean RxRole = true;
 boolean TxRole = false;
-boolean ModuleRole = true; 
+//boolean ModuleRole = true; 
 
 uint8_t RxCounter = 0x00;
 uint8_t TxCounter = 0x00;
@@ -34,8 +34,8 @@ uint8_t ToTxCounter = 0x0F;
 
 
 //uint32_t TimeExecute = 0; niepotrzebne
-uint32_t RxTimeExecute = 0;
-uint32_t TxTimeExecute = 0;
+//uint32_t RxTimeExecute = 0;
+//uint32_t TxTimeExecute = 0;
 uint16_t blinkTime = 500;
 
 String RxBufferName = "RX Buffer";
@@ -88,7 +88,6 @@ void setup() {
 void loop() {
   delay(1000);
   /* Start receive */
-//  RxTimeExecute = micros();                      //time execute measure
   receiver.startListening();
 
   if (RxRole) {                                    //if module is Receiver
@@ -106,8 +105,7 @@ void loop() {
     RxCounter++;
     Serial.println("\nRx Counter " + String(RxCounter) + "\n");
   }
-//  RxTimeExecute = micros() - RxTimeExecute;
-//  Serial.println("\nRx execute time: " + (String(RxTimeExecute)) + " us\n" );    //Print time of execute
+
   /* End of receive */
 
   /* Change role */
