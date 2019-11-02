@@ -82,12 +82,7 @@ void setup() {
 
 void loop() {
 
-  TxBuffer[0] = map( analogRead(A0), 0, 1023, 0, 255);  //X
-  TxBuffer[1] = map( analogRead(A1), 0, 1023, 0, 255);  //X
-  TxBuffer[2] = map( analogRead(A2), 0, 1023, 0, 255);  //SWT
-  TxBuffer[3] = 0x00;                                   //Role
-
-  delay(100);
+ delay(100);
   /* Start transmit */
 
   if (TxRole) { //if module is in transmitter mode
@@ -107,9 +102,9 @@ void loop() {
       RxRole = true; TxRole = false;
       Serial.println("\nChange role from TX to RX\nTxCounter: " + String(TxCounter));
       TxCounter = 0;
+      
       TxBuffer[3] = 0x0F;   //cmd to changes role of Slave
       uint8_t counter = 0;
-
       do {
         digitalWrite(TX_PIN_LED, HIGH);
         counter++;
@@ -117,8 +112,8 @@ void loop() {
         Serial.println("\nTransmitting role chage CMD");
         digitalWrite(TX_PIN_LED, LOW);
 
-        if (counter) {                     //timeOut 
-          TxState = true;                  //to end of do while 
+        if (counter == globalTimeOut) {                     //timeOut
+          TxState = true;                  //to end of do while
           TxRole = true; RxRole = false;   //recovery roles
         }
       } while (!TxState);
@@ -128,26 +123,26 @@ void loop() {
 
   /* Start receive */
   if (RxRole) {
+    remote.startListening();
     digitalWrite(RX_PIN_LED, HIGH);
     if (remote.available()) {
       remote.read(RxBuffer, BUFFER_SIZE);
-      Serial.print("RX Buffer print " + String(RxBuffer[0]));
-
+      Serial.print("\nRX Buffer print " + String(RxBuffer[0]));
+      Serial.print("\nRX Buffer print " + String(RxBuffer[1]));
+      Serial.print("\nRX Buffer print " + String(RxBuffer[2]));
+      Serial.print("\nRX Buffer print " + String(RxBuffer[3]));
     }
-    RxCounter++;
-    Serial.println("\n RxCounter " + String(RxCounter) + "\n");
     digitalWrite(RX_PIN_LED, LOW);
+
+    if (RxBuffer[3] == 0x0F) {
+      RxRole = false; TxRole = true;
+      Serial.println("\nChange role from RX to TX\n Change CMD: " + String(RxBuffer[3]));
+      RxBuffer[3] = 0x00;
+    }
   }
   /* End of receive */
-  if (RxCounter == ToTxCounter) {
-    RxRole = false;
-    TxRole = true;
-    Serial.println("Change role from RX to TX\nRxCounter: " + String(RxCounter));
-    RxCounter = 0;
-  }
-
-
 }
+//End of loop()
 
 
 
