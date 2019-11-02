@@ -9,7 +9,7 @@
 
 /* Directives and Macros */
 #define PIPE_ADDRESS_SIZE  5    //Only 5 byte!
-#define BUFFER_SIZE        8   //Size of TX and RX buffers
+#define BUFFER_SIZE        4    //Size of TX and RX buffers //zmniejszone do 4 bajtów zeby przyspiszysc transmisję i nie wysylac pustych bitow
 
 
 #define UART_SPEED_48    4800   //UART speeds
@@ -27,17 +27,16 @@ boolean TxState = false;
 boolean RxRole = false;
 boolean TxRole = true;
 
+uint8_t globalTimeOut = 32;
 uint8_t TxCounter = 0x00;
 uint8_t RxCounter = 0x00;
 uint8_t ToTxCounter = 0x0A;
 uint8_t ToRxCounter = 0x0F;
 
-//uint32_t TimeExecute = 0;   niepotrzebne
-uint32_t TxTimeExecute = 0;
-uint32_t RxTimeExecute = 0;
+//uint32_t TxTimeExecute = 0;
+//uint32_t RxTimeExecute = 0;
 
 uint16_t blinkTime = 200;
-
 
 /* Arrays */
 uint8_t TxBuffer[BUFFER_SIZE];
@@ -54,7 +53,7 @@ RF24 remote(7, 8);
 
 void setup() {
   /* UART init */
-  Serial.begin(UART_SPEED_96, SERIAL_8E1);                        //UART 8 bits with EVEN mode - że bit parzystości
+  Serial.begin(UART_SPEED_115, SERIAL_8E1);                        //UART 8 bits with EVEN mode - że bit parzystości
   Serial.println("\nRemote application start\nUART init OK\n");
   delay(10);
 
@@ -83,28 +82,46 @@ void setup() {
 
 void loop() {
 
-  TxBuffer[0] = map( analogRead(A0), 0, 1023, 0, 255);
-  TxBuffer[1] = map( analogRead(A1), 0, 1023, 0, 255);
-  TxBuffer[2] = map( analogRead(A2), 0, 1023, 0, 255);
-  TxBuffer[3] = 0x00;
+  TxBuffer[0] = map( analogRead(A0), 0, 1023, 0, 255);  //X
+  TxBuffer[1] = map( analogRead(A1), 0, 1023, 0, 255);  //X
+  TxBuffer[2] = map( analogRead(A2), 0, 1023, 0, 255);  //SWT
+  TxBuffer[3] = 0x00;                                   //Role
 
   delay(100);
   /* Start transmit */
-  //  TxTimeExecute = micros(); //time execute measure
-  remote.stopListening();
-  if (TxRole) {                                        //if module is in transmitter mode
-    digitalWrite(TX_PIN_LED, HIGH);                      //TX LED ON
+
+  if (TxRole) { //if module is in transmitter mode
+    remote.stopListening();
+    TxBuffer[0] = map( analogRead(A0), 0, 1023, 0, 255);
+    TxBuffer[1] = map( analogRead(A1), 0, 1023, 0, 255);
+    TxBuffer[2] = map( analogRead(A2), 0, 1023, 0, 255);
+    TxBuffer[3] = 0x00;
+
+    TxCounter++;                                         
+    digitalWrite(TX_PIN_LED, HIGH);                     //TX LED ON
     TxState = remote.write(TxBuffer, BUFFER_SIZE);      //transmit TxBuffer content and status transmission save
-    digitalWrite(TX_PIN_LED, LOW);                       //TX LED OFF
-    TxCounter++;
     Serial.println("\n TxState " + String(TxState) + "\n");
+    digitalWrite(TX_PIN_LED, LOW);                       //TX LED OFF
+
+    if (TxCounter == ToRxCounter) {
+      RxRole = true;
+      TxRole = false;
+      Serial.println("\nChange role from TX to RX\nTxCounter: " + String(TxCounter));
+      TxCounter = 0;
+      TxBuffer[3] = 0x0F;   //cmd to changes role of Slave
+      uint8_t counter = 0;
+     do {
+        digitalWrite(TX_PIN_LED, HIGH);
+        Serial.println("\nTransmitting role chage CMD");
+        digitalWrite(TX_PIN_LED, LOW);
+        counter++;
+        if(Counter) {
+          
+        }
+      } while (!remote.write(TxBuffer, BUFFER_SIZE));
+    }
   }
-  if (TxCounter == ToRxCounter) {
-    RxRole = true;
-    TxRole = false;
-    Serial.println("\nChange role from TX to RX\nTxCounter: " + String(TxCounter));
-    TxCounter = 0;
-  }
+
   /* End of transmit */
 
   /* Start receive */
